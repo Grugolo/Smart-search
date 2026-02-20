@@ -119,11 +119,11 @@
         border-radius: 6px;
         padding: 8px 6px;
         resize: none;
-        overflow: hidden;        /* niente scroll */
+        overflow: hidden;
         background: #1a1a1a;
         color: #f0f0f0;
-        white-space: normal;     /* permette l’andare a capo */
-        word-break: keep-all;    /* NON spezza le parole */
+        white-space: normal;
+        word-break: keep-all;
         line-height: 1.1;
     }
 
@@ -157,7 +157,6 @@
 
     .flags span.active {
         opacity: 1;
-        outline: 2px solid #0078ff;
         transform: translateY(-4px);
     }
 
@@ -197,12 +196,33 @@
         background: transparent;
     }
 
-    /* AREA CLICCABILE SOTTO (RADDOPPIATA) */
+    /* AREA CLICCABILE SOTTO */
     .click-area {
         width: 100%;
         height: 300px;
         background: transparent;
     }
+    
+    
+.footer {
+    width: 100%;
+    text-align: center;
+    font-size: 14px;
+    opacity: 0.6;
+    margin-top: 10px;
+    line-height: 1.4;
+    padding-bottom: 10px;
+}
+
+.footer a {
+    color: #9ecbff;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    opacity: 1;
+}
+    
 </style>
 
 <script>
@@ -237,7 +257,7 @@ function buildFiletypeString() {
         .join("");
 }
 
-/* SLIDER + HAPTIC FEEDBACK */
+/* SLIDER */
 function initSlider() {
     const wrapper = document.getElementById("slider");
     const pill = document.getElementById("slider-pill");
@@ -275,6 +295,14 @@ function initSlider() {
 
 /* BANDIERE */
 function selectLang(code, el) {
+    // Se clicchi la bandiera già attiva → torna alla modalità default
+    if (activeLang === code) {
+        activeLang = null;
+        document.querySelectorAll(".flags span").forEach(f => f.classList.remove("active"));
+        return;
+    }
+
+    // Altrimenti seleziona la nuova bandiera
     activeLang = code;
 
     document.querySelectorAll(".flags span").forEach(f => f.classList.remove("active"));
@@ -283,7 +311,30 @@ function selectLang(code, el) {
 
 /* COSTRUZIONE URL */
 function buildSearchURL(engine) {
-    const q = document.getElementById("query").value.trim();
+let raw = document.getElementById("query").value.trim();
+let q = applySmartTags(raw);
+
+// Aggiorna slider
+document.querySelectorAll(".slider-labels span")
+    .forEach((l, i) => l.classList.toggle("active", i === activeModeIndex));
+
+const pill = document.getElementById("slider-pill");
+const segment = document.getElementById("slider").offsetWidth / 6;
+pill.style.left = (activeModeIndex * segment) + "px";
+
+// Aggiorna bandiere
+document.querySelectorAll(".flags span").forEach(f => f.classList.remove("active"));
+if (activeLang) {
+    document.querySelector(`.flags span[onclick*="${activeLang}"]`)?.classList.add("active");
+}
+
+// Aggiorna filetype
+document.querySelectorAll(".filters button").forEach(btn => {
+    const ft = btn.innerText.toLowerCase();
+    btn.classList.toggle("active", activeFiletypes.has(ft));
+});
+
+
     const limit = document.getElementById("limit").value.trim();
     const filetypes = buildFiletypeString();
     const mode = ["maps","web","news","foto","video","shorts"][activeModeIndex];
@@ -379,9 +430,9 @@ function initEnterSearch() {
     });
 }
 
-/* SWIPE AREA */
-function initSwipeArea() {
-    const zones = document.querySelectorAll(".swipe-area, .click-area");
+/* SWIPE SU TUTTE LE AREE */
+function initSwipe() {
+    const zones = document.querySelectorAll(".flags, .swipe-area, .click-area");
 
     zones.forEach(zone => {
         let startX = 0;
@@ -397,19 +448,95 @@ function initSwipeArea() {
             if (Math.abs(delta) < 50) return;
 
             if (delta > 50) {
-                runSearch("google");
-            } else if (delta < -50) {
                 runSearch("duck");
+            } else if (delta < -50) {
+                runSearch("google");
             }
         });
     });
 }
+
+
+
+function applySmartTags(raw) {
+    let text = raw.toLowerCase();
+
+    // --- MODALITÀ ---
+    const modeMap = {
+        "#mps": 0,
+        "#web": 1,
+        "#nws": 2,
+        "#img": 3,
+        "#vid": 4,
+        "#short": 5
+    };
+
+    for (const tag in modeMap) {
+        if (text.includes(tag)) {
+            activeModeIndex = modeMap[tag];
+            text = text.replaceAll(tag, "");
+        }
+    }
+
+    // --- FILETYPE ---
+    const fileMap = {
+        "#pdf": "pdf",
+        "#doc": "docx",
+        "#xls": "xlsx",
+        "#ppt": "pptx",
+        "#txt": "txt",
+        "#zip": "zip"
+    };
+
+    for (const tag in fileMap) {
+        if (text.includes(tag)) {
+            activeFiletypes.add(fileMap[tag]);
+            text = text.replaceAll(tag, "");
+        }
+    }
+
+    // --- LINGUE ---
+    const langMapTags = {
+        "#it": "it",
+        "#fr": "fr",
+        "#us": "us",
+        "#gb": "gb",
+        "#de": "de",
+        "#es": "es"
+    };
+
+    for (const tag in langMapTags) {
+        if (text.includes(tag)) {
+            activeLang = langMapTags[tag];
+            text = text.replaceAll(tag, "");
+        }
+    }
+
+    return text.replace(/\s+/g, " ").trim();
+}
+
+
+
 document.addEventListener("DOMContentLoaded", () => {
     initSlider();
-    initSwipeArea();
+    initSwipe();
     initAutoFit();
     initEnterSearch();
 });
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const mod = new Date(document.lastModified);
+
+    // Formattazione italiana
+    const formatted =
+        mod.getDate().toString().padStart(2, "0") + " " +
+        mod.toLocaleString("it-IT", { month: "short" }) + " " +
+        mod.getFullYear();
+
+    document.getElementById("lastmod").textContent = formatted;
+});
+
 </script>
 
 </head>
@@ -482,9 +609,13 @@ document.addEventListener("DOMContentLoaded", () => {
     <!-- AREA CLICCABILE -->
     <div class="click-area" onclick="clearAndFocus()"></div>
 
+<div class="footer">
+    Sviluppato da Grugolo & Copilot • 
+    <a href="https://github.com/tuo-username/tuo-repo" target="_blank">Repository GitHub</a><br>
+    Ultima modifica: <span id="lastmod"></span>
+</div>
+
 </div>
 
 </body>
 </html>
-
-
