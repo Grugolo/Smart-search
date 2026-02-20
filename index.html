@@ -381,28 +381,29 @@ function initEnterSearch() {
 
 /* SWIPE AREA */
 function initSwipeArea() {
-    const zone = document.querySelector(".swipe-area");
+    const zones = document.querySelectorAll(".swipe-area, .click-area");
 
-    let startX = 0;
+    zones.forEach(zone => {
+        let startX = 0;
 
-    zone.addEventListener("touchstart", e => {
-        startX = e.touches[0].clientX;
-    });
+        zone.addEventListener("touchstart", e => {
+            startX = e.touches[0].clientX;
+        });
 
-    zone.addEventListener("touchend", e => {
-        const endX = e.changedTouches[0].clientX;
-        const delta = endX - startX;
+        zone.addEventListener("touchend", e => {
+            const endX = e.changedTouches[0].clientX;
+            const delta = endX - startX;
 
-        if (Math.abs(delta) < 50) return;
+            if (Math.abs(delta) < 50) return;
 
-        if (delta > 50) {
-            runSearch("google");
-        } else if (delta < -50) {
-            runSearch("duck");
-        }
+            if (delta > 50) {
+                runSearch("google");
+            } else if (delta < -50) {
+                runSearch("duck");
+            }
+        });
     });
 }
-
 document.addEventListener("DOMContentLoaded", () => {
     initSlider();
     initSwipeArea();
@@ -485,4 +486,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
 
