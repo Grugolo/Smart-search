@@ -102,27 +102,29 @@
         gap: 10px;
     }
 
-.site-column img {
-    width: 40px;
-    height: 40px;
-    object-fit: contain; /* <— fondamentale */
-}
+    .site-column img {
+        width: 42px;
+        height: 42px;
+        cursor: pointer;
+        opacity: 0.9;
+        object-fit: contain;
+    }
 
+    /* TEXTAREA */
     textarea {
         width: 100%;
         height: 100%;
-        font-size: 20px;
+        font-size: 40px;
         border: none;
         border-radius: 6px;
         padding: 8px 6px;
         resize: none;
-        overflow: hidden;
+        overflow: hidden;        /* niente scroll */
         background: #1a1a1a;
         color: #f0f0f0;
-        line-height: 1.15;
-        white-space: normal;
-        word-break: break-word;
-        overflow-wrap: break-word;
+        white-space: normal;     /* permette l’andare a capo */
+        word-break: keep-all;    /* NON spezza le parole */
+        line-height: 1.1;
     }
 
     textarea:focus {
@@ -188,9 +190,18 @@
         color: #ccc;
     }
 
+    /* AREA SWIPE */
+    .swipe-area {
+        width: 100%;
+        height: 80px;
+        background: transparent;
+    }
+
+    /* AREA CLICCABILE SOTTO (RADDOPPIATA) */
     .click-area {
         width: 100%;
-        height: 120px;
+        height: 240px;
+        background: transparent;
     }
 </style>
 
@@ -323,35 +334,27 @@ function runSearch(engine) {
     if (url) window.location.href = url;
 }
 
-      
-/* AUTO-FIT TEXTAREA */
+/* CLEAR + FOCUS */
+function clearAndFocus() {
+    const ta = document.getElementById("query");
+    ta.value = "";
+    ta.focus();
+}
+
+/* AUTO-FIT DEL FONT */
 function initAutoFit() {
     const ta = document.getElementById("query");
     const wrapper = ta.parentElement;
 
     function autoFit() {
-        let fontSize = parseInt(window.getComputedStyle(ta).fontSize);
-        const maxSize = 80;
-        const minSize = 10;
+        let fontSize = 60;
+        const minSize = 14;
 
-        if (ta.value.trim() === "") {
-            ta.style.fontSize = maxSize + "px";
-            return;
-        }
+        ta.style.fontSize = fontSize + "px";
 
         while (ta.scrollHeight > wrapper.clientHeight && fontSize > minSize) {
             fontSize--;
             ta.style.fontSize = fontSize + "px";
-        }
-
-        while (ta.scrollHeight < wrapper.clientHeight - 10 && fontSize < maxSize) {
-            fontSize++;
-            ta.style.fontSize = fontSize + "px";
-            if (ta.scrollHeight > wrapper.clientHeight) {
-                fontSize--;
-                ta.style.fontSize = fontSize + "px";
-                break;
-            }
         }
     }
 
@@ -359,9 +362,26 @@ function initAutoFit() {
     autoFit();
 }
 
-/* SWIPE SULLE BANDIERE */
-function initFlagSwipe() {
-    const zone = document.querySelector(".flag-container");
+/* INVIO = RICERCA GOOGLE */
+function initEnterSearch() {
+    const ta = document.getElementById("query");
+
+    ta.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+        }
+    });
+
+    ta.addEventListener("keyup", function(e) {
+        if (e.key === "Enter") {
+            runSearch("google");
+        }
+    });
+}
+
+/* SWIPE AREA */
+function initSwipeArea() {
+    const zone = document.querySelector(".swipe-area");
 
     let startX = 0;
 
@@ -376,26 +396,19 @@ function initFlagSwipe() {
         if (Math.abs(delta) < 50) return;
 
         if (delta > 50) {
-            runSearch("duck");
-        } else if (delta < -50) {
             runSearch("google");
+        } else if (delta < -50) {
+            runSearch("duck");
         }
     });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     initSlider();
-    initFlagSwipe();
+    initSwipeArea();
     initAutoFit();
+    initEnterSearch();
 });
-
-document.getElementById("query").addEventListener("keydown", function(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();          // blocca il ritorno a capo
-        runSearch("google");         // avvia la ricerca Google
-    }
-});
-      
 </script>
 
 </head>
@@ -462,11 +475,13 @@ document.getElementById("query").addEventListener("keydown", function(e) {
         <button onclick="document.getElementById('limit').value=''">✕</button>
     </div>
 
+    <!-- AREA SWIPE -->
+    <div class="swipe-area"></div>
+
     <!-- AREA CLICCABILE -->
-    <div class="click-area" onclick="document.getElementById('query').focus()"></div>
+    <div class="click-area" onclick="clearAndFocus()"></div>
 
 </div>
 
 </body>
-
 </html>
