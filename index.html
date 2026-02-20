@@ -100,6 +100,7 @@
         width: 100%;
         height: 130px;
         gap: 10px;
+        flex-shrink: 0;
     }
 
     .site-column img {
@@ -109,6 +110,15 @@
         opacity: 0.9;
         object-fit: contain;
     }
+    
+    .site-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    flex-shrink: 0;   /* NON si restringe */
+    flex-grow: 0;     /* NON si espande */
+}
 
     /* TEXTAREA */
     textarea {
@@ -125,11 +135,21 @@
         white-space: normal;
         word-break: keep-all;
         line-height: 1.1;
-    }
+        flex-shrink: 0;   /* impedisce di restringersi */
+        flex-grow: 0;     /* impedisce di espandersi */
+}
 
     textarea:focus {
         outline: 1px solid #0078ff;
     }
+    
+.textarea-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-shrink: 0;
+}
 
     /* BANDIERE */
     .flag-container {
@@ -395,15 +415,23 @@ function clearAndFocus() {
 /* AUTO-FIT DEL FONT */
 function initAutoFit() {
     const ta = document.getElementById("query");
-    const wrapper = ta.parentElement;
+    const MAX_FONT = 60;
+    const MIN_FONT = 14;
 
     function autoFit() {
-        let fontSize = 60;
-        const minSize = 14;
+        // Se la textarea è vuota → reset font
+        if (ta.value.trim() === "") {
+            ta.style.fontSize = MAX_FONT + "px";
+            return;
+        }
 
+        let fontSize = MAX_FONT;
         ta.style.fontSize = fontSize + "px";
 
-        while (ta.scrollHeight > wrapper.clientHeight && fontSize > minSize) {
+        const maxHeight = ta.clientHeight;
+
+        // Riduci finché il contenuto non entra
+        while (ta.scrollHeight > maxHeight && fontSize > MIN_FONT) {
             fontSize--;
             ta.style.fontSize = fontSize + "px";
         }
@@ -611,7 +639,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <div class="footer">
     Sviluppato da Grugolo & Copilot • 
-    <a href="https://github.com/tuo-username/tuo-repo" target="_blank">Repository GitHub</a><br>
+    <a href="https://github.com/Grugolo/Smart-search" target="_blank">Repository GitHub</a><br>
     Ultima modifica: <span id="lastmod"></span>
 </div>
 
