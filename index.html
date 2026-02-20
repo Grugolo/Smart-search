@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Smart Search</title>
+<title>Ricerca Smart</title>
 
 <style>
     :root {
@@ -116,8 +116,8 @@
     flex-direction: column;
     justify-content: space-between;
     height: 100%;
-    flex-shrink: 0;   
-    flex-grow: 0;   
+    flex-shrink: 0;   /* NON si restringe */
+    flex-grow: 0;     /* NON si espande */
 }
 
     /* TEXTAREA */
@@ -135,17 +135,13 @@
         white-space: normal;
         word-break: keep-all;
         line-height: 1.1;
-        flex-shrink: 0;  
-        flex-grow: 0;
-        outline: none !important;
-        box-shadow: none !important;
+        flex-shrink: 0;   /* impedisce di restringersi */
+        flex-grow: 0;     /* impedisce di espandersi */
 }
 
     textarea:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    border: none !important;
-}
+        outline: 1px solid #0078ff;
+    }
     
 .textarea-column {
     flex: 1;
@@ -250,143 +246,150 @@
 </style>
 
 <script>
-/* ============================
-   VARIABILI GLOBALI
-============================ */
 let activeFiletypes = new Set();
-let activeModeIndex = 1; // default = Web
+let activeModeIndex = 1;
 let activeLang = null;
 
-/* ============================
-   LINGUE ESTESE (Google + DuckDuck)
-============================ */
 const langSmartMap = {
-    "ar": { hl: "ar", gl: "AR", kl: "ar-ar" },
-    "cn": { hl: "zh-CN", gl: "CN", kl: "zh-cn" },
-    "tw": { hl: "zh-TW", gl: "TW", kl: "zh-tw" },
-    "da": { hl: "da", gl: "DK", kl: "da-dk" },
-    "nl": { hl: "nl", gl: "NL", kl: "nl-nl" },
-    "en": { hl: "en", gl: "US", kl: "en-us" },
-    "fr": { hl: "fr", gl: "FR", kl: "fr-fr" },
-    "de": { hl: "de", gl: "DE", kl: "de-de" },
-    "hi": { hl: "hi", gl: "IN", kl: "hi-in" },
-    "it": { hl: "it", gl: "IT", kl: "it-it" },
-    "ja": { hl: "ja", gl: "JP", kl: "ja-jp" },
-    "ko": { hl: "ko", gl: "KR", kl: "ko-kr" },
-    "pl": { hl: "pl", gl: "PL", kl: "pl-pl" },
-    "pt": { hl: "pt", gl: "PT", kl: "pt-pt" },
-    "ru": { hl: "ru", gl: "RU", kl: "ru-ru" },
-    "es": { hl: "es", gl: "ES", kl: "es-es" },
-    "sv": { hl: "sv", gl: "SE", kl: "sv-se" },
-    "th": { hl: "th", gl: "TH", kl: "th-th" },
-    "tr": { hl: "tr", gl: "TR", kl: "tr-tr" },
-    "vi": { hl: "vi", gl: "VN", kl: "vi-vn" }
+    "ar":  { hl: "ar", gl: "AR", kl: "ar-ar" },
+    "zh-cn": { hl: "zh-CN", gl: "CN", kl: "zh-cn" },
+    "zh-tw": { hl: "zh-TW", gl: "TW", kl: "zh-tw" },
+    "da":  { hl: "da", gl: "DK", kl: "da-dk" },
+    "nl":  { hl: "nl", gl: "NL", kl: "nl-nl" },
+    "en":  { hl: "en", gl: "US", kl: "en-us" },
+    "fr":  { hl: "fr", gl: "FR", kl: "fr-fr" },
+    "de":  { hl: "de", gl: "DE", kl: "de-de" },
+    "hi":  { hl: "hi", gl: "IN", kl: "hi-in" },
+    "it":  { hl: "it", gl: "IT", kl: "it-it" },
+    "ja":  { hl: "ja", gl: "JP", kl: "ja-jp" },
+    "ko":  { hl: "ko", gl: "KR", kl: "ko-kr" },
+    "pl":  { hl: "pl", gl: "PL", kl: "pl-pl" },
+    "pt":  { hl: "pt", gl: "PT", kl: "pt-pt" },
+    "ru":  { hl: "ru", gl: "RU", kl: "ru-ru" },
+    "es":  { hl: "es", gl: "ES", kl: "es-es" },
+    "sv":  { hl: "sv", gl: "SE", kl: "sv-se" },
+    "th":  { hl: "th", gl: "TH", kl: "th-th" },
+    "tr":  { hl: "tr", gl: "TR", kl: "tr-tr" },
+    "vi":  { hl: "vi", gl: "VN", kl: "vi-vn" }
 };
 
-/* ============================
-   SMART‑TAG (#mps #pdf #it ecc.)
-============================ */
-function applySmartTags(raw) {
-    let text = raw.toLowerCase();
 
-    // MODALITÀ
-    const modeMap = {
-        "#mps": 0,
-        "#web": 1,
-        "#nws": 2,
-        "#img": 3,
-        "#vid": 4,
-        "#short": 5
-    };
-    for (const tag in modeMap) {
-        if (text.includes(tag)) {
-            activeModeIndex = modeMap[tag];
-            text = text.replaceAll(tag, "");
-        }
+
+/* FILETYPE */
+function toggleFiletype(ft, btn) {
+    if (activeFiletypes.has(ft)) {
+        activeFiletypes.delete(ft);
+        btn.classList.remove("active");
+    } else {
+        activeFiletypes.add(ft);
+        btn.classList.add("active");
     }
-
-    // FILETYPE
-    const fileMap = {
-        "#pdf": "pdf",
-        "#doc": "docx",
-        "#xls": "xlsx",
-        "#ppt": "pptx",
-        "#txt": "txt",
-        "#zip": "zip"
-    };
-    for (const tag in fileMap) {
-        if (text.includes(tag)) {
-            activeFiletypes.add(fileMap[tag]);
-            text = text.replaceAll(tag, "");
-        }
-    }
-
-    // LINGUE ESTESE
-    for (const code in langSmartMap) {
-        const tag = "#" + code;
-        if (text.includes(tag)) {
-            activeLang = code;
-            text = text.replaceAll(tag, "");
-        }
-    }
-
-    return text.replace(/\s+/g, " ").trim();
 }
 
-/* ============================
-   AGGIORNA UI (slider, bandiere, filetype)
-============================ */
-function refreshUI() {
-    // SLIDER
+function buildFiletypeString() {
+    return Array.from(activeFiletypes)
+        .map(ft => " filetype:" + ft)
+        .join("");
+}
+
+/* SLIDER */
+function initSlider() {
+    const wrapper = document.getElementById("slider");
     const pill = document.getElementById("slider-pill");
-    const segment = document.getElementById("slider").offsetWidth / 6;
-    pill.style.left = (activeModeIndex * segment) + "px";
+    const labels = document.querySelectorAll(".slider-labels span");
 
-    document.querySelectorAll(".slider-labels span")
-        .forEach((l, i) => l.classList.toggle("active", i === activeModeIndex));
+    let lastIndex = activeModeIndex;
 
-    // BANDIERE (solo quelle presenti)
-    document.querySelectorAll(".flags span").forEach(f => f.classList.remove("active"));
-    if (activeLang) {
-        const flag = document.querySelector(`.flags span[onclick*="${activeLang}"]`);
-        if (flag) flag.classList.add("active");
+    wrapper.addEventListener("touchstart", e => move(e.touches[0].clientX));
+    wrapper.addEventListener("touchmove",  e => move(e.touches[0].clientX));
+
+    function move(x) {
+        const rect = wrapper.getBoundingClientRect();
+        const pos = x - rect.left;
+        const segment = rect.width / 6;
+        let index = Math.floor(pos / segment);
+        index = Math.max(0, Math.min(5, index));
+
+        if (index !== lastIndex) {
+            if (navigator.vibrate) navigator.vibrate(15);
+            lastIndex = index;
+        }
+
+        activeModeIndex = index;
+        update();
     }
 
-    // FILETYPE
-    document.querySelectorAll(".filters button").forEach(btn => {
-        const ft = btn.innerText.toLowerCase();
-        btn.classList.toggle("active", activeFiletypes.has(ft));
-    });
+    function update() {
+        const segment = wrapper.offsetWidth / 6;
+        pill.style.left = (activeModeIndex * segment) + "px";
+        labels.forEach((l, i) => l.classList.toggle("active", i === activeModeIndex));
+    }
+
+    update();
 }
 
-/* ============================
-   COSTRUZIONE URL DI RICERCA
-============================ */
+/* BANDIERE */
+function selectLang(code, el) {
+    // Se clicchi la bandiera già attiva → torna alla modalità default
+    if (activeLang === code) {
+        activeLang = null;
+        document.querySelectorAll(".flags span").forEach(f => f.classList.remove("active"));
+        return;
+    }
+
+    // Altrimenti seleziona la nuova bandiera
+    activeLang = code;
+
+    document.querySelectorAll(".flags span").forEach(f => f.classList.remove("active"));
+    el.classList.add("active");
+}
+
+/* COSTRUZIONE URL */
 function buildSearchURL(engine) {
-    let raw = document.getElementById("query").value.trim();
-    let q = applySmartTags(raw);
-    refreshUI();
+let raw = document.getElementById("query").value.trim();
+let q = applySmartTags(raw);
+
+// Aggiorna slider
+document.querySelectorAll(".slider-labels span")
+    .forEach((l, i) => l.classList.toggle("active", i === activeModeIndex));
+
+const pill = document.getElementById("slider-pill");
+const segment = document.getElementById("slider").offsetWidth / 6;
+pill.style.left = (activeModeIndex * segment) + "px";
+
+// Aggiorna bandiere
+document.querySelectorAll(".flags span").forEach(f => f.classList.remove("active"));
+if (activeLang) {
+    document.querySelector(`.flags span[onclick*="${activeLang}"]`)?.classList.add("active");
+}
+
+// Aggiorna filetype
+document.querySelectorAll(".filters button").forEach(btn => {
+    const ft = btn.innerText.toLowerCase();
+    btn.classList.toggle("active", activeFiletypes.has(ft));
+});
+
 
     const limit = document.getElementById("limit").value.trim();
-    const filetypes = Array.from(activeFiletypes).map(ft => " filetype:" + ft).join("");
-
-    if (!q) q = ""; // ricerca vuota = apri Google
+    const filetypes = buildFiletypeString();
+    const mode = ["maps","web","news","foto","video","shorts"][activeModeIndex];
 
     let query = q + filetypes;
     if (limit) query += " site:" + limit;
 
     const finalQuery = encodeURIComponent(query);
+
     let params = "";
 
-    // LINGUA
-    if (activeLang && langSmartMap[activeLang]) {
-        const L = langSmartMap[activeLang];
-        if (engine === "google") params = `&hl=${L.hl}&gl=${L.gl}`;
-        if (engine === "duck") params = `&kl=${L.kl}`;
-    }
+if (activeLang && [activeLang]) {
+    const L = langSmartMap[activeLang];
 
-    // MODALITÀ
-    const mode = ["maps","web","news","foto","video","shorts"][activeModeIndex];
+    if (engine === "google") {
+        params = `&hl=${L.hl}&gl=${L.gl}`;
+    } else if (engine === "duck") {
+        params = `&kl=${L.kl}`;
+    }
+}
 
     if (engine === "google") {
         switch (mode) {
@@ -411,17 +414,66 @@ function buildSearchURL(engine) {
     }
 }
 
-/* ============================
-   AVVIA RICERCA
-============================ */
+/* AVVIA RICERCA */
 function runSearch(engine) {
     const url = buildSearchURL(engine);
     if (url) window.location.href = url;
 }
 
-/* ============================
-   SWIPE (invertito)
-============================ */
+/* CLEAR + FOCUS */
+function clearAndFocus() {
+    const ta = document.getElementById("query");
+    ta.value = "";
+    ta.focus();
+}
+
+/* AUTO-FIT DEL FONT */
+function initAutoFit() {
+    const ta = document.getElementById("query");
+    const MAX_FONT = 60;
+    const MIN_FONT = 14;
+
+    function autoFit() {
+        // Se la textarea è vuota → reset font
+        if (ta.value.trim() === "") {
+            ta.style.fontSize = MAX_FONT + "px";
+            return;
+        }
+
+        let fontSize = MAX_FONT;
+        ta.style.fontSize = fontSize + "px";
+
+        const maxHeight = ta.clientHeight;
+
+        // Riduci finché il contenuto non entra
+        while (ta.scrollHeight > maxHeight && fontSize > MIN_FONT) {
+            fontSize--;
+            ta.style.fontSize = fontSize + "px";
+        }
+    }
+
+    ta.addEventListener("input", autoFit);
+    autoFit();
+}
+
+/* INVIO = RICERCA GOOGLE */
+function initEnterSearch() {
+    const ta = document.getElementById("query");
+
+    ta.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+        }
+    });
+
+    ta.addEventListener("keyup", function(e) {
+        if (e.key === "Enter") {
+            runSearch("google");
+        }
+    });
+}
+
+/* SWIPE SU TUTTE LE AREE */
 function initSwipe() {
     const zones = document.querySelectorAll(".flags, .swipe-area, .click-area");
 
@@ -438,80 +490,80 @@ function initSwipe() {
 
             if (Math.abs(delta) < 50) return;
 
-            if (delta > 50) runSearch("duck");     // → destra = DuckDuck
-            if (delta < -50) runSearch("google");  // ← sinistra = Google
+            if (delta > 50) {
+                runSearch("duck");
+            } else if (delta < -50) {
+                runSearch("google");
+            }
         });
     });
 }
 
-/* ============================
-   ENTER = RICERCA GOOGLE
-============================ */
-function initEnterSearch() {
-    const ta = document.getElementById("query");
 
-    ta.addEventListener("keydown", e => {
-        if (e.key === "Enter") e.preventDefault();
-    });
 
-    ta.addEventListener("keyup", e => {
-        if (e.key === "Enter") runSearch("google");
-    });
-}
+function applySmartTags(raw) {
+    let text = raw.toLowerCase();
 
-/* ============================
-   AUTO-FIT FONT
-============================ */
-function initAutoFit() {
-    const ta = document.getElementById("query");
-    const MAX_FONT = 60;
-    const MIN_FONT = 14;
+    // --- MODALITÀ ---
+    const modeMap = {
+        "#mps": 0,
+        "#web": 1,
+        "#nws": 2,
+        "#img": 3,
+        "#vid": 4,
+        "#short": 5
+    };
 
-    function autoFit() {
-        if (ta.value.trim() === "") {
-            ta.style.fontSize = MAX_FONT + "px";
-            return;
-        }
-
-        let fontSize = MAX_FONT;
-        ta.style.fontSize = fontSize + "px";
-
-        const maxHeight = ta.clientHeight;
-
-        while (ta.scrollHeight > maxHeight && fontSize > MIN_FONT) {
-            fontSize--;
-            ta.style.fontSize = fontSize + "px";
+    for (const tag in modeMap) {
+        if (text.includes(tag)) {
+            activeModeIndex = modeMap[tag];
+            text = text.replaceAll(tag, "");
         }
     }
 
-    ta.addEventListener("input", autoFit);
-    autoFit();
+    // --- FILETYPE ---
+    const fileMap = {
+        "#pdf": "pdf",
+        "#doc": "docx",
+        "#xls": "xlsx",
+        "#ppt": "pptx",
+        "#txt": "txt",
+        "#zip": "zip"
+    };
+
+    for (const tag in fileMap) {
+        if (text.includes(tag)) {
+            activeFiletypes.add(fileMap[tag]);
+            text = text.replaceAll(tag, "");
+        }
+    }
+
+ for (const code in langSmartMap) {
+        const tag = "#" + code;
+        if (text.includes(tag)) {
+             activeLang = code;
+             text = text.replaceAll(tag, "");
+        }
+    }
+
+    return text.replace(/\s+/g, " ").trim();
 }
 
-/* ============================
-   CLICK AREA
-============================ */
-function initClickArea() {
-    const area = document.querySelector(".click-area");
-    const ta = document.getElementById("query");
-
-    if (!area || !ta) return;
-
-    area.addEventListener("click", () => {
-        ta.focus();          // porta il focus sulla textarea
-        ta.setSelectionRange(ta.value.length, ta.value.length); // cursore alla fine
-    });
-}
-
-/* ============================
-   INIZIALIZZAZIONE
-============================ */
 document.addEventListener("DOMContentLoaded", () => {
+    initSlider();
     initSwipe();
-    initEnterSearch();
     initAutoFit();
-    initClickArea();  
+    initEnterSearch();
+
+    // DATA ULTIMA MODIFICA
+    const mod = new Date(document.lastModified);
+    const formatted =
+        mod.getDate().toString().padStart(2, "0") + " " +
+        mod.toLocaleString("it-IT", { month: "short" }) + " " +
+        mod.getFullYear();
+    document.getElementById("lastmod").textContent = formatted;
 });
+
 </script>
 
 </head>
@@ -594,4 +646,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
-
