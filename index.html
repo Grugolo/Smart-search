@@ -323,6 +323,7 @@ function runSearch(engine) {
     if (url) window.location.href = url;
 }
 
+      
 /* AUTO-FIT TEXTAREA */
 function initAutoFit() {
     const ta = document.getElementById("query");
@@ -387,6 +388,14 @@ document.addEventListener("DOMContentLoaded", () => {
     initFlagSwipe();
     initAutoFit();
 });
+
+document.getElementById("query").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+        e.preventDefault();          // blocca il ritorno a capo
+        runSearch("google");         // avvia la ricerca Google
+    }
+});
+      
 </script>
 
 </head>
@@ -459,4 +468,5 @@ document.addEventListener("DOMContentLoaded", () => {
 </div>
 
 </body>
+
 </html>
